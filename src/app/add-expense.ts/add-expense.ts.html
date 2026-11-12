@@ -1,0 +1,14 @@
+<h2>Add Expense</h2>
+
+<button (click)="submitTestExpense()">Create Test Expense</button>
+
+@if (lastExpense()) {
+  <p>
+    Created: {{ lastExpense()!.description }} ${{ lastExpense()!.amount }} (id
+    {{ lastExpense()!.id }})
+  </p>
+}
+
+@if (error()) {
+  <p class="error">{{ error() }}</p>
+}

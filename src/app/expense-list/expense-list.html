@@ -19,13 +19,13 @@
          Angular which row is which so it can reuse a row instead
          of rebuilding it -->
     @for (expense of expenses(); track expense.id) {
-      <li>{{ expense.description }} — {{ expense.category }} — £{{ expense.amount }}</li>
+      <li>{{ expense.description }} — {{ expense.category }} — ${{ expense.amount }}</li>
     } @empty {
       <!-- @empty — runs only when the loop above had zero rows -->
       <li class="empty">No expenses yet. Add your first one.</li>
     }
   </ul>
-  <p>Total: £{{ totalAmount() | number: '1.2-2' }}</p>
+  <p>Total: ${{ totalAmount() | number: '1.2-2' }}</p>
 }
 
 <!-- a teaching aid for today — this line gets removed at the
