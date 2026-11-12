@@ -40,4 +40,21 @@ export class ExpenseList {
   protected removeExpense(idToRemove: number): void {
     this.expensesService.removeExpense(idToRemove);
   }
+
+// Adding loading states
+  protected readonly status = this.expensesService.status;
+  protected readonly isLoading = this.expensesService.isLoading;
+
+  // Same pattern as before: point the url signal at a new mock
+  // route, and the resource fetches and reacts on its own.
+  protected loadSlowly(): void {
+    this.expensesService.loadFrom(`${EXPENSES_API}/slow`);
+  }
+  protected loadEmpty(): void {
+    this.expensesService.loadFrom(`${EXPENSES_API}/empty`);
+  }
+  protected reload(): void {
+    this.expensesService.reload();
+  }
+
 }

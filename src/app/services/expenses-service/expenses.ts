@@ -24,7 +24,7 @@ export interface Expense {
   amount: number;
 }
 
-export const EXPENSES_API = "http://localhost:3500/api/expenses";
+export const EXPENSES_API = "http://localhost:3500/api/expenses"; // can connect to any server by updating this line
 
 // This service is available  at the root level,
 // so it can be injected into any component
@@ -117,5 +117,23 @@ readonly all = this.expenses.asReadonly();
   // and initiates a new GET request to the updated endpoint
   loadFrom(url: string): void {
     this.url.set(url)
+  }
+
+
+  // One of: 'idle' | 'loading' | 'reloading' |
+  //         'resolved' | 'error' | 'local'
+  // status is the resource's own signal, re-exported as-is —
+  // none of this state is tracked by hand.
+  readonly status = this.remote.status;
+
+  // True during both 'loading' and 'reloading'. isLoading is also the resource's own
+  // signal, passed straight through.
+  readonly isLoading = this.remote.isLoading;
+
+  // Repeat the current request. The previous value stays visible until the new one arrives.
+  // reload is the other half of the fetch pattern: an unchanged url signal sends 
+  // nothing, so a deliberate refetch calls reload() instead of loadFrom().
+  reload(): void {
+    this.remote.reload();
   }
 }

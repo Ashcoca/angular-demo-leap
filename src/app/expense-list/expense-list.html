@@ -1,20 +1,33 @@
+<!-- error first — the message and a Try again button -->
+<!-- loading with no rows — "Loading expenses..." -->
+<!-- otherwise the list: a "Refreshing..." banner while reloading -->
+<!-- @for the rows, @empty the empty-list line, then the total -->
+<!-- a temporary Resource status line -->
+<!-- @else if / @else — one chain, checked top to bottom; -->
+<!-- first match wins, so the ORDER here is the logic -->
 @if (loadError()) {
-  <p class="error"> {{ loadError }} </p>
+  <p class="error">{{ loadError() }}</p>
+  <button (click)="reload()">Try again</button>
+} @else if (isLoading() && expenses().length === 0) {
+  <p class="loading">Loading expenses...</p>
+} @else {
+  @if (isLoading()) {
+    <p class="loading">Refreshing...</p>
+  }
+  <ul>
+    <!-- @for — the same loop as in earlier phases; track tells
+         Angular which row is which so it can reuse a row instead
+         of rebuilding it -->
+    @for (expense of expenses(); track expense.id) {
+      <li>{{ expense.description }} — {{ expense.category }} — £{{ expense.amount }}</li>
+    } @empty {
+      <!-- @empty — runs only when the loop above had zero rows -->
+      <li class="empty">No expenses yet. Add your first one.</li>
+    }
+  </ul>
+  <p>Total: £{{ totalAmount() | number: '1.2-2' }}</p>
 }
 
-<ul>
-  @for (expense of expenses(); track expense.id) {
-  <li>
-    {{ expense.description }} - {{ expense.category }} - ${{ expense.amount }}
-  </li>
-  } @empty {
-    <li>No expenses</li>
-  }
-</ul>
-
-<p> Total: ${{ totalAmount() }} </p>
-
-<div class="controls">
-  <button (click)="loadFromApi()"> Load from API </button>
-  <button (click)="simulateApiError()"> Simulate API error </button>
-</div>
+<!-- a teaching aid for today — this line gets removed at the
+     end of the session -->
+<p>Resource status: {{ status() }}</p>
