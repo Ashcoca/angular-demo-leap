@@ -1,17 +1,13 @@
 <ul>
   @for (expense of expenses(); track expense.id) {
-    <li
-    [class.selected]="expense.id === selectedId()"
-    (click)="select(expense.id)">
+  <li>
     {{ expense.description }} - {{ expense.category }} - ${{ expense.amount }}
     <button (click)="removeExpense(expense.id); $event.stopPropagation();">Remove</button>
   </li>
   } @empty {
     <li>No expenses</li>
   }
-    />
 </ul>
 
 <p> Total: ${{ totalAmount() }} </p>
-<p>Selected: {{ selectedId() ?? 'none' }}</p>
 <button class="add-expense" (click)="addExpense()">Add Expense</button>
