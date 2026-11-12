@@ -1,11 +1,21 @@
-import { signal, computed, Injectable } from '@angular/core';
-// Move interface into service from the component
-// @Injectable() // This is a service, it can be injected
-// into other components
-// Private expenses signal, seeded with two items
-// all - a readOnly signal that returns the current value of expenses
-// totalAmount - a computed signal that sums all expenses
-// add() append with the next id, remove() filter by id
+import { signal, computed, Injectable, linkedSignal } from '@angular/core';
+import { httpResource } from '@angular/common/http';
+/*
+ url signal describe our requests
+ remote - httResource: a GET on startup and whenever url signal changes
+ expenses a writable linkedSignal copy of the loaded array
+ add and remove() update the expenses signal, which updates the linkedSignal,
+ which updates the remote signal, which updates the server
+
+ loadError - a signal that is set to the error message if the load fails
+ do something signals value changes
+ 
+ httpResource - a signal that is set to the result of the GET request, 
+ or an error message if it fails
+
+ */
+
+
 
 export interface Expense {
   id: number;
@@ -14,19 +24,51 @@ export interface Expense {
   amount: number;
 }
 
+export const EXPENSES_API = "http://localhost:3500/api/expenses";
+
 // This service is available  at the root level,
 // so it can be injected into any component
 // So this entire application can share just one instance
 // of our Expenses class
 @Injectable({ providedIn: 'root' })
 export class Expenses {
-  protected readonly expenses = signal<Expense[]>([
-    { id: 1, description: 'Standing desk', category: 'Furniture', amount: 300 },
-    { id: 2, description: 'Monitor', category: 'Electronics', amount: 200 },
-  ]);
+  // The request is set here by this signal
+  // Signals are an angular concept that allows us to manage state and react to changes in that state. 
+  // The url signal describes our requests, and the remote signal is an httpResource 
+  // that performs a GET request on startup and whenever the url signal changes. 
+  // The expenses signal is a writable linkedSignal copy of the loaded array, and the 
+  // add and remove methods update the expenses signal, which updates the linkedSignal, 
+  // which updates the remote signal, which updates the server.
+  protected readonly url = signal(EXPENSES_API);
 
-  // A read-only signal that returns the current value of expenses
-  readonly all = this.expenses.asReadonly();
+
+  // HTTP Resource - a signal that is set to the result of the GET request,
+  
+  // Because request funcrtion this.url -> Angular will track the signal and re-run the request whenever 
+  // the url signal changes.
+  // It fetch automatically on startup and whenever the url signal changes.
+  readonly remote = httpResource<Expense[]>(
+    () => this.url(),
+  );
+// Return resource object exposes some reactivity signals
+// - .value - the current value of the resource, or undefined if not yet loaded - response body
+// - .error - the current error, or undefined if no error
+// hasValue() - a boolean signal that is true if the resource has valid data, false if not
+// isLoading() - a boolean signal that is true if the resource is currently loading, false if not
+
+
+  private readonly expenses = linkedSignal<Expense[]>(() =>
+  // Guard undefined values, hasValue before accessing .value If the httprequest fails,
+  // reading .value directly would throw an error, so we guard against that by checking hasValue() first. 
+  // If the request fails, we return an empty array instead of throwing an error.
+    this.remote.hasValue() ? this.remote.value() : [],
+  );
+
+// Expose the expenses signal as a read-only signal to other components
+// So that they can read it but not modify it directly. 
+// This is a common pattern in Angular to encapsulate state and prevent unintended side effects.
+readonly all = this.expenses.asReadonly();
+
 
   // A computed signal that sums all expenses
   readonly totalAmount = computed(() => {
@@ -34,25 +76,46 @@ export class Expenses {
     return currentExpenses.reduce((sum, expense) => sum + expense.amount, 0);
   });
 
-  // Read, compute, set: never edit the array in place, build
-  // a new use .set() to set it. The signal only notices a new
-  // array, not a mutation of the existing one, our only option
-  // is to replace the whole thing
+
+  // Add a new expense to the local writable state - optimisted update
+  // Note: Local changes will be overwritten the next time the server is updated, 
+  // so we need to make sure that the server is updated as well.
   add(expense: Omit<Expense, 'id'>): void {
-    // Omit lets us
-    // remove the id property from the type, we will add it
     const currentExpenses = this.expenses();
-    const nextId = currentExpenses.length + 1;
-    const updatedExpenses = [
-      // spread operator, three dots take the current array and copy it into a new one
-      ...currentExpenses,
-      { ...expense, id: nextId }, // spread operator to copy the expense object and add the id
-    ];
-    this.expenses.set(updatedExpenses);
+
+    const highestExistingId = Math.max(
+      0,
+      ...currentExpenses.map((expense) => expense.id)
+    );
+  const nextId = highestExistingId + 1;
+
+
+  const updatedExpense = [
+    ...currentExpenses,
+    { ...expense, id: nextId },
+  ];
+  this.expenses.set(updatedExpense);
   }
 
   removeExpense(idToRemove: number): void {
     const updatedExpenses = this.expenses().filter((expense) => expense.id !== idToRemove);
     this.expenses.set(updatedExpenses);
+  }
+
+  // Deliver a user friendly error message from the resource's error signal
+  // Failed HTTP responses are isolated inside remote.error(), they never corrupt remote.value()
+  readonly loadError = computed(() => {
+    const error = this.remote.error();
+    return error
+    ? `Could not load expenses ${error.message}`
+    : null;
+  })
+
+
+  // Trigger a data reload by updatng the url signal
+  // Since httpResource tracks our url, updating this clue automatically cancels any in-flight request
+  // and initiates a new GET request to the updated endpoint
+  loadFrom(url: string): void {
+    this.url.set(url)
   }
 }
