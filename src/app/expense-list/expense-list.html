@@ -1,8 +1,11 @@
+@if (loadError()) {
+  <p class="error"> {{ loadError }} </p>
+}
+
 <ul>
   @for (expense of expenses(); track expense.id) {
   <li>
     {{ expense.description }} - {{ expense.category }} - ${{ expense.amount }}
-    <button (click)="removeExpense(expense.id); $event.stopPropagation();">Remove</button>
   </li>
   } @empty {
     <li>No expenses</li>
@@ -10,4 +13,8 @@
 </ul>
 
 <p> Total: ${{ totalAmount() }} </p>
-<button class="add-expense" (click)="addExpense()">Add Expense</button>
+
+<div class="controls">
+  <button (click)="loadFromApi()"> Load from API </button>
+  <button (click)="simulateApiError()"> Simulate API error </button>
+</div>

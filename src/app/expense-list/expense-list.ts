@@ -1,13 +1,11 @@
 import { Component, inject } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
-import { Expenses } from '../services/expenses-service/expenses';
+import { Expenses, EXPENSES_API } from '../services/expenses-service/expenses';
 /* 
 
- Inject the expenses service
- Expenses and our totalAmount now come from the service
- addExpenses() and removeExpense() now call the service methods
- inject  - new syntax asks the root for the shared service instance
- instead of building a whole new one
+inject the service, expose expense totalAmount and loadError
+loadFromApi() - point the services url signal back at the API
+simulateanAPi error - point it at the /error route
 */
 
 @Component({
@@ -16,18 +14,26 @@ import { Expenses } from '../services/expenses-service/expenses';
   styleUrl: './expense-list.css', // Path to our styling
   templateUrl: './expense-list.html',
 })
-
 export class ExpenseList {
   private readonly expensesService = inject(Expenses);
-  readonly expenses = this.expensesService.all;
-  readonly totalAmount = this.expensesService.totalAmount;
 
+  protected readonly expenses = this.expensesService.all;
+  protected readonly totalAmount = this.expensesService.totalAmount;
+  protected readonly loadError = this.expensesService.loadError;
+
+  // Neither button send a requrst, both just gonna change the services url signal,
+  // and the resource does the fetching
+  protected loadFromApi(): void {
+    this.expensesService.loadFrom(EXPENSES_API);
+  }
+
+  protected simulateApiError(): void {
+    this.expensesService.loadFrom(`${EXPENSES_API}/error`)
+  }
 
   // Add a new expense to the array usint .update()
   protected addExpense(): void {
-    this.expensesService.add(
-      { description: 'Ice cream', category: 'Food', amount: 5 },
-    );
+    this.expensesService.add({ description: 'Ice cream', category: 'Food', amount: 5 });
   }
 
   // Remove an expense from the array using .update()
